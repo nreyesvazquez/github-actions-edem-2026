@@ -44,4 +44,4 @@ Estos son los "corazones" del repo: archivos YAML que definen automatizaciones. 
 **Qué Hacen en Conjunto**: Demuestran evolución de workflows: desde "hola mundo" hasta pipelines reales de CI/CD que integran testing, linting, Docker y Terraform.
 
 #### **d. El Documento de Ejercicios (`EXERCISES.md`)**
-- **Propósito**: Guía práctica para que los alumnos creen sus propios workflows basados en los ejemplos
+- **Propósito**: Guía práctica para que los alumnos creen sus propios workflows basados en los ejemplos.
