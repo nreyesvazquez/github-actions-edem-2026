@@ -24,16 +24,7 @@ Estos son los "corazones" del repo: archivos YAML que definen automatizaciones. 
 - **7.multiple_job_argument.yaml**: Pasa datos entre jobs.
 - **8.python_pr.yaml**: CI completo para Python. En PRs/pushes: instala dependencias, ejecuta tests (`unittest`), linting (`flake8`), checks de seguridad (`bandit`) y valida el Dockerfile (`hadolint`). También construye una imagen Docker.
 
-#### **b. La Aplicación Python (`code/python/`)**
-- **Propósito**: Una calculadora básica en Python para demostrar CI/CD. No es compleja, aunque veais muchos archivos, pero sirve para practicar pruebas y despliegues.
-- **Archivos**:
-  - `main.py`: Define funciones matemáticas (suma, resta, multiplicación, división) y una interfaz de consola para usar la calculadora. Es interactiva: pide números al usuario y muestra resultados.
-  - `test_main.py`: Pruebas unitarias usando `unittest`. Verifica que las funciones matemáticas funcionen correctamente (ej.: suma de 2+3=5, división por cero da error).
-  - `requirements.txt`: Lista de dependencias: `flake8` (linter para detectar errores de estilo), `black` (formateador de código), `coverage` (para medir cobertura de tests) y `bandit` (escáner de seguridad).
-  - `DockerFile` (nota: debería ser `Dockerfile`): Instrucciones para construir una imagen Docker de la app. Usa Python 3.9, copia el código y ejecuta `main.py` al iniciar el contenedor.
-- **Qué Hace en Conjunto**: Es un ejemplo de "app mínima" para CI/CD. Los workflows la usan para ejecutar tests, linting y builds. Este es un ejemplo para que podais comprobar y utilizar de guía para poder hacer workflows mas completos y complejos en vuestros proyectos.
-
 **Qué Hacen en Conjunto**: Demuestran evolución de workflows: desde "hola mundo" hasta pipelines reales de CI/CD que integran testing, linting, Docker.
 
 #### **d. El Documento de Ejercicios (`EXERCISES.md`)**
-- **Propósito**: Guía práctica para que los alumnos creen sus propios workflows basados en los ejemplos
+- **Propósito**: Guía práctica para que los alumnos creen sus propios workflows basados en los ejemplos.
