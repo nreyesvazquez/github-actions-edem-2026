@@ -41,7 +41,7 @@ Estos son los "corazones" del repo: archivos YAML que definen automatizaciones. 
 - **8.python_pr.yaml**: CI completo para Python. En PRs/pushes: instala dependencias, ejecuta tests (`unittest`), linting (`flake8`), checks de seguridad (`bandit`) y valida el Dockerfile (`hadolint`). También construye una imagen Docker.
 - **9.terraform.yaml**: CI para Terraform. En PRs: formatea código, inicializa, planea cambios en AWS y (opcionalmente) aplica. Usa secrets para credenciales AWS.
 
-**Qué Hacen en Conjunto**: Demuestran evolución de workflows: desde "hola mundo" hasta pipelines reales de CI/CD que integran testing, linting, Docker y Terraform.
+**Qué Hacen en Conjunto**: Demuestran evolución de workflows: desde "hola mundo" hasta pipelines reales de CI/CD que integran testing, linting, Docker.
 
 #### **d. El Documento de Ejercicios (`EXERCISES.md`)**
 - **Propósito**: Guía práctica para que los alumnos creen sus propios workflows basados en los ejemplos.
