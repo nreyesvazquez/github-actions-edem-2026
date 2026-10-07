@@ -1,0 +1,75 @@
+name: CI/CD - Mi Peli
+on:
+  # Cuando abrimos o actualizamos una Pull Request hacia main
+  pull_request:
+    branches: [main]
+  # Cuando hacemos merge y el código llega a main
+  push:
+    branches: [main]
+jobs:
+  # =========================
+  # 1. BUILD
+  # =========================
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+      - name: Build de la aplicación
+        run: |
+          echo "Construyendo Su Pelicula..."
+          echo "Build completado"
+  # =========================
+  # 2. TEST
+  # =========================
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    # No empieza hasta que Build termine correctamente
+    needs: build
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+      - name: Ejecutar tests
+        run: |
+          echo "Ejecutando tests..."
+          echo "Todos los tests han pasado"
+  # =========================
+  # 3. DEPLOY PREVIEW
+  # Solo Pull Requests
+  # =========================
+  deploy-preview:
+    name: Deploy Preview
+    runs-on: ubuntu-latest
+    needs: test
+    # Solo se ejecuta si estamos en una Pull Request
+    if: github.event_name == 'pull_request'
+    environment:
+      name: preview
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+      - name: Deploy Preview
+        run: |
+          echo "Desplegando entorno Preview..."
+          echo "Preview desplegada"
+  # =========================
+  # 4. DEPLOY PRODUCTION
+  # Solo cuando llegamos a main
+  # =========================
+  deploy-production:
+    name: Deploy Production
+    runs-on: ubuntu-latest
+    needs: test
+    # Solo se ejecuta en un push a main
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+      - name: Deploy Production
+        run: |
+          echo "Desplegando Su Pelicula en PRODUCCION..."
+          echo "Aplicación desplegada"
