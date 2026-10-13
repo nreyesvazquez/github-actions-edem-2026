@@ -1,0 +1,13 @@
+name: Welcome to the party (third)
+on:
+  workflow_dispatch:
+    inputs:
+      thename:
+        description: 'What is your name?'
+        required: true
+jobs:
+  say_hello:
+    name: "Let's greet the users!"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Hello, ${{ inputs.thename }}!"
