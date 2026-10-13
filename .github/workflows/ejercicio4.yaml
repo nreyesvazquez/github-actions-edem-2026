@@ -1,4 +1,4 @@
-name: Welcome to the party (second)
+name: Ejercicio4
 on:
   workflow_dispatch:
 jobs:
