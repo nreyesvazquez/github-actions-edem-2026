@@ -1,4 +1,4 @@
-name: Welcome to the party (third)
+name: Outputs example (fourth)
 on:
   workflow_dispatch:
 jobs:
