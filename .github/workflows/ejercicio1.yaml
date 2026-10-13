@@ -5,19 +5,16 @@
 name: Ejercicio_1
 on:
   workflow_dispatch:
-
+env:
+      GLOBAL_VAR: "Hola desde Job 1"
 jobs:
   job1:
     runs-on: ubuntu-latest
-    env:
-      GLOBAL_VAR: "Hola desde Job 1"
     steps:
       - name: Mostrar variable de entorno en Job 1
         run: echo $GLOBAL_VAR
   job2:
     runs-on: ubuntu-latest
-    env:
-      GLOBAL_VAR: "Hola desde Job 2"
     steps:
       - name: Mostrar variable de entorno en Job 2
         run: echo $GLOBAL_VAR
