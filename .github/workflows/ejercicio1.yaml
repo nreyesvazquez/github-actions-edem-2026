@@ -6,7 +6,7 @@ name: Ejercicio_1
 on:
   workflow_dispatch:
 env:
-      GLOBAL_VAR: "Hola desde Job 1"
+      GLOBAL_VAR: "Hola desde Job externo"
 jobs:
   job1:
     runs-on: ubuntu-latest
