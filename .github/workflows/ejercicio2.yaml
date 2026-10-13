@@ -8,6 +8,6 @@ jobs:
   login-job:
     runs-on: ubuntu-latest
     steps:
-      - name: Simular login con secreto
+      - name: Simular login
         run: |
           echo "La contraseña es: ${{ secrets.CONTRASENA_PRUEBA }}"
