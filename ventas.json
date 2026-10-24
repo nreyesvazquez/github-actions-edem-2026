@@ -1,0 +1,52 @@
+{
+  "empresa": "EDEM Retail S.L.",
+  "periodo": "2026-10",
+  "moneda": "EUR",
+  "ventas": [
+    {
+      "id": 1001,
+      "fecha": "2026-10-01",
+      "cliente": "Marta Ruiz",
+      "producto": "Portátil Pro 14",
+      "cantidad": 1,
+      "precio_unitario": 1299.90,
+      "region": "Valencia"
+    },
+    {
+      "id": 1002,
+      "fecha": "2026-10-03",
+      "cliente": "Carlos Gómez",
+      "producto": "Monitor 27 pulgadas",
+      "cantidad": 2,
+      "precio_unitario": 249.50,
+      "region": "Madrid"
+    },
+    {
+      "id": 1003,
+      "fecha": "2026-10-05",
+      "cliente": "Lucía Fernández",
+      "producto": "Teclado mecánico",
+      "cantidad": 3,
+      "precio_unitario": 89.99,
+      "region": "Barcelona"
+    },
+    {
+      "id": 1004,
+      "fecha": "2026-10-08",
+      "cliente": "Javier Molina",
+      "producto": "Auriculares inalámbricos",
+      "cantidad": 4,
+      "precio_unitario": 129.00,
+      "region": "Sevilla"
+    },
+    {
+      "id": 1005,
+      "fecha": "2026-10-12",
+      "cliente": "Ana Torres",
+      "producto": "Webcam HD",
+      "cantidad": 2,
+      "precio_unitario": 59.95,
+      "region": "Valencia"
+    }
+  ]
+}

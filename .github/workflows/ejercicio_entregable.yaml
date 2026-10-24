@@ -1,0 +1,70 @@
+name: Entregable GitHub Actions
+on:
+  workflow_dispatch:
+    inputs:
+      testseguridad:
+        type: boolean
+        description: '¿Quieres ejecutar los tests de seguridad?'
+        default: true
+        required: true
+
+jobs:
+  ci_seguridad:
+    name: "Soy el job 1: valido JSON y realizo (o no) escaneo seguridad."
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargo codigo
+        uses: actions/checkout@v3
+      - name: Valido ventas.json
+        run: python -m json.tool ventas.json
+      - name: Escaneo seguridad (APIs expuestas)
+        if: ${{ inputs.testseguridad }}
+        shell: python
+        run: | 
+          import re
+          import sys
+
+          patrones = {
+            "api_key": r"api[_-]?key",
+            "token": r"token",
+            "secret": r"secret",
+            "clave tipo sk-": r"\bsk-[A-Za-z0-9]{10,}",
+            "clave de AWS": r"AKIA[0-9A-Z]{16}",
+          }
+          with open("ventas.json", encoding="utf-8") as f:
+            contenido = f.read()
+
+          encontrados = [nombre for nombre, patron in patrones.items() if re.search(patron, contenido, re.IGNORECASE)]
+
+          if encontrados:
+            print("Posibles claves API expuestas: " + ",".join(encontrados))
+            sys.exit(1)
+          print("No se han encontrado claves expuestas.")
+
+  procesamiento:
+    name: "Soy el job 2: procesamiento."
+    runs-on: ubuntu-latest
+    needs: ci_seguridad
+    strategy:
+      matrix:
+        entornos: [staging, production]
+    steps:
+      - name: Descargo codigo
+        uses: actions/checkout@v3
+      - name: Genero reporte para ${{ matrix.entornos }}
+        run: |
+          REPORTE=reporte_${{ matrix.entornos }}.txt
+          echo "info del reporte" > $REPORTE
+      - name: Subir reporte
+        uses: actions/upload-artifact@v3
+        with:
+          name: reporte-${{ matrix.entornos }}
+          path: reporte_${{ matrix.entornos }}
+
+  notificacion_exito:
+    name: "Soy el job 3: notificacion exito."
+    runs-on: ubuntu-latest
+    needs: procesamiento
+    steps:
+      - name: Simulo notificacion dicord
+      - run: echo "Soy el job 3 (notificacion de exito): ${{ secrets.DISCORD_WEBHOOK }}"
