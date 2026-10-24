@@ -1,0 +1,69 @@
+# =====================================================================
+# MISSION · NIVEL 4 · PULL REQUEST -> BUILD -> TEST -> PREVIEW
+# ---------------------------------------------------------------------
+# QUÉ CAMBIA:
+#   - El evento pasa a ser pull_request: el pipeline revisa el cambio ANTES de
+#     que llegue a main.
+#   - Un tercer job, deploy-preview, despliega una versión temporal para
+#     revisar el cambio. Usa environment: preview, así GitHub enseña el
+#     despliegue en la propia Pull Request.
+#
+# CÓMO PROBARLO: copia este nivel a .github/workflows/ (en lugar del anterior) y
+# súbelo a main. Después, crea una rama, cambia algo en RecursosEstudio/su-pelicula/,
+# súbela y abre una Pull Request hacia main. Los checks aparecen en la propia PR.
+# =====================================================================
+name: "Mission · Nivel 4 · Pull Request con Preview"
+
+on:
+  # Cuando abrimos o actualizamos una Pull Request hacia main
+  pull_request:
+    branches: [main]
+    paths:
+      - "RecursosEstudio/su-pelicula/**"
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: RecursosEstudio/su-pelicula
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v7
+      - name: Instalar Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Build de la película
+        run: python pelicula.py
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: build
+    defaults:
+      run:
+        working-directory: RecursosEstudio/su-pelicula
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v7
+      - name: Instalar Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Ejecutar tests
+        run: python -m unittest -v
+
+  # NUEVO EN ESTE NIVEL
+  deploy-preview:
+    name: Deploy Preview
+    runs-on: ubuntu-latest
+    needs: test
+    environment:
+      name: preview                     # GitHub lo crea solo la primera vez
+    steps:
+      - name: Deploy Preview
+        run: |
+          echo "Desplegando el entorno Preview de la PR #${{ github.event.pull_request.number }}..."
+          echo "Preview desplegada (simulado)"

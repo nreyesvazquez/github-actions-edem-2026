@@ -1,0 +1,89 @@
+# =====================================================================
+# 03 · JOBS EN PARALELO Y EN SECUENCIA       (diapositiva «Componentes: Jobs»)
+# ---------------------------------------------------------------------
+# - Los jobs se ejecutan EN PARALELO por defecto.
+# - needs: hace que un job espere a que otro termine BIEN. Si el job del que
+#   depende falla, este no se ejecuta (sale como «skipped»).
+# - Cada job tiene su propio runner: una máquina nueva y limpia. Lo que hace un
+#   job (archivos, variables) no lo ve otro. Para pasar datos hacen falta
+#   outputs (ejemplo 09) o artifacts (ejemplo 10).
+# - El id de un job es único en el workflow, empieza por letra o _ y solo
+#   lleva letras, números, - y _:   test_linux ✔  deploy-prod ✔  1job ✘  mi job ✘
+#
+# Este workflow dibuja este grafo (lo verás en la pestaña Actions):
+#
+#   preparar ──┬── test_linux ───┬── informe ── limpieza
+#              └── test_windows ─┘
+#   aviso   (solo, en paralelo con todo)
+#
+# CÓMO PROBARLO: cópialo a .github/workflows/, push, y Actions > Run workflow.
+# =====================================================================
+name: "03 · Jobs en paralelo y en secuencia"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # Sin needs: arranca en cuanto se lanza el workflow
+  preparar:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Preparando en $RUNNER_OS..."
+      - name: Crear un archivo en ESTA máquina
+        run: |
+          echo "Hola desde el job preparar" > nota.txt
+          ls -la nota.txt
+
+  # needs: preparar -> espera a preparar. test_linux y test_windows no dependen
+  # entre sí, así que se ejecutan a la vez.
+  test_linux:
+    needs: preparar
+    runs-on: ubuntu-latest
+    steps:
+      - name: ¿Está el archivo que creó preparar?
+        run: |
+          if [ -f nota.txt ]; then
+            echo "Sí"
+          else
+            echo "No: cada job tiene su propia máquina, limpia"
+          fi
+
+  test_windows:
+    needs: preparar
+    runs-on: windows-latest          # otro runner: Windows
+    steps:
+      # En Windows la terminal por defecto es PowerShell: las variables se leen con $env:
+      - run: echo "Hola desde $env:RUNNER_OS"
+      # Con shell: bash se puede usar bash también en Windows.
+      # run: | (bloque) en vez de en una línea: el texto lleva «: » y, en una sola
+      # línea, YAML lo confundiría con una clave (ver «Si algo falla» en el README)
+      - shell: bash
+        run: |
+          echo "Y también con bash: $RUNNER_OS"
+
+  # needs con una lista: espera a los dos
+  informe:
+    needs: [test_linux, test_windows]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5               # si tarda más de 5 minutos, se cancela (por defecto: 360)
+    steps:
+      - run: echo "Los tests de Linux y Windows han terminado bien"
+
+  # if: always() -> se ejecuta aunque los jobs anteriores fallen o se cancelen.
+  # Útil para limpiar o para avisar de cómo ha ido.
+  limpieza:
+    needs: informe
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "El job informe ha terminado con resultado ${{ needs.informe.result }}"
+
+  # Sin needs: va por libre, en paralelo con preparar
+  aviso:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Yo no espero a nadie"
+
+# Prueba: añade «exit 1» al final del step de test_linux y lánzalo otra vez.
+# test_linux saldrá en rojo, informe como skipped, y limpieza se ejecutará igualmente
+# (con resultado skipped).

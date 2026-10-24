@@ -1,0 +1,4 @@
+# Los scripts de shell que se ejecutan en Linux (el entrypoint de la acción Docker)
+# se guardan siempre con finales de línea LF, aunque se editen en Windows.
+# Con CRLF, el contenedor daría el error: exec /entrypoint.sh: no such file or directory
+*.sh text eol=lf

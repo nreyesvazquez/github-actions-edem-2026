@@ -1,0 +1,117 @@
+# =====================================================================
+# 06 · CONTEXTOS                                       (diapositivas «Contexts»)
+# ---------------------------------------------------------------------
+# Un contexto es un objeto con información de la ejecución. Se lee con
+#     ${{ <contexto>.<propiedad> }}
+# GitHub sustituye la expresión por su valor ANTES de mandar el step al runner.
+#
+# Los doce contextos:
+#   github    el evento, el repositorio, la rama, el commit, quién lo lanzó...
+#   env       variables de entorno definidas en el workflow (ejemplo 07)
+#   vars      variables de configuración del repositorio (Settings > ... > Variables)
+#   secrets   secretos (Settings > Secrets and variables > Actions)
+#   inputs    los inputs del workflow (ejemplo 05)
+#   job       el job actual (su estado, sus contenedores de servicio)
+#   jobs      los jobs de un workflow reutilizable (solo en workflow_call)
+#   steps     los steps anteriores con id: sus outputs y su resultado
+#   runner    la máquina: sistema operativo, arquitectura, carpeta temporal...
+#   strategy  datos de la matrix: cuántos jobs hay y cuál es este
+#   matrix    los valores de la combinación actual de la matrix (ejemplo 08)
+#   needs     los jobs de los que depende este: su resultado y sus outputs
+#
+# No todos están en todas partes: por ejemplo, steps solo dentro de un job y
+# needs solo en un job que tiene needs:.
+#
+# CÓMO PROBARLO: cópialo a .github/workflows/, push, Actions > Run workflow.
+# =====================================================================
+name: "06 · Contextos"
+
+on:
+  workflow_dispatch:
+    inputs:
+      mensaje:
+        description: "Un texto cualquiera"
+        type: string
+        default: "Hola, contextos"
+
+env:
+  CURSO: "Máster en IA, Big Data y Cloud"
+
+jobs:
+  contextos:
+    runs-on: ubuntu-latest
+    # outputs del job: los leerá el job con_needs a través del contexto needs
+    outputs:
+      color: ${{ steps.elegir.outputs.color }}
+    steps:
+      - name: github, runner y job
+        run: |
+          echo "Evento:      ${{ github.event_name }}"
+          echo "Lanzado por: ${{ github.actor }}"
+          echo "Repositorio: ${{ github.repository }}"
+          echo "Rama:        ${{ github.ref_name }}  (ref completa: ${{ github.ref }})"
+          echo "Commit:      ${{ github.sha }}"
+          echo "Ejecución nº ${{ github.run_number }} del workflow «${{ github.workflow }}»"
+          echo "Enlace:      ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo "Runner:      ${{ runner.os }} ${{ runner.arch }}"
+          echo "Estado del job hasta ahora: ${{ job.status }}"
+
+      # Casi todo esto también está como VARIABLE DE ENTORNO en el runner
+      # ($GITHUB_ACTOR, $GITHUB_SHA, $RUNNER_OS...). La diferencia:
+      #   ${{ github.actor }}  lo sustituye GitHub antes de ejecutar el script
+      #   $GITHUB_ACTOR        lo lee la terminal mientras se ejecuta
+      - name: Lo mismo con variables de entorno
+        run: echo "$GITHUB_ACTOR lanzó $GITHUB_WORKFLOW en $RUNNER_OS"
+
+      # Los textos que escribe una persona (inputs, títulos de PR...) se pasan por env
+      - name: env, inputs, vars y secrets
+        env:
+          MENSAJE: ${{ inputs.mensaje }}
+        run: |
+          echo "env.CURSO:      ${{ env.CURSO }}"
+          echo "inputs.mensaje: $MENSAJE"
+          # || da un valor por defecto si la variable no existe
+          echo "vars.REGION:    ${{ vars.REGION || 'no definida' }}"
+          # Un secreto que no existe vale '' (texto vacío)
+          echo "¿Existe el secreto DB_PASSWORD? ${{ secrets.DB_PASSWORD != '' }}"
+
+      # steps: para leer algo de un step, el step necesita un id
+      - id: elegir
+        name: Un step con id y un output
+        run: echo "color=azul" >> "$GITHUB_OUTPUT"
+
+      - name: steps
+        run: |
+          echo "Output del step elegir: ${{ steps.elegir.outputs.color }}"
+          echo "Resultado del step elegir: ${{ steps.elegir.outcome }}"   # success, failure, cancelled o skipped
+
+      # toJSON enseña un contexto entero. Útil para ver qué propiedades tiene.
+      # (No hagas toJSON(secrets) ni toJSON(github) en repositorios reales:
+      #  pueden incluir datos sensibles.)
+      - name: Un contexto entero, en JSON
+        env:
+          RUNNER_JSON: ${{ toJSON(runner) }}
+          EVENTO_JSON: ${{ toJSON(github.event) }}
+        run: |
+          echo "runner = $RUNNER_JSON"
+          echo "github.event = $EVENTO_JSON"
+
+  # strategy y matrix solo existen en jobs con matrix
+  con_matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        sabor: [vainilla, chocolate, fresa]
+    steps:
+      - run: |
+          echo "matrix.sabor = ${{ matrix.sabor }}"
+          echo "Soy el job ${{ strategy.job-index }} de ${{ strategy.job-total }} (empiezan en 0)"
+
+  # needs: el resultado y los outputs de los jobs de los que depende
+  con_needs:
+    needs: contextos
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "El job contextos terminó con: ${{ needs.contextos.result }}"
+          echo "Y me pasó el color: ${{ needs.contextos.outputs.color }}"

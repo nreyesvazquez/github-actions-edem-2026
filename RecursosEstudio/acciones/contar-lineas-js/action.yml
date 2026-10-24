@@ -1,0 +1,29 @@
+# =====================================================================
+# CUSTOM ACTION · JAVASCRIPT: un programa de Node.js que ejecuta el runner
+# ---------------------------------------------------------------------
+# runs.using: node24   la versión de Node.js con la que se ejecuta (la actual en GitHub)
+# runs.main:  index.js el archivo que arranca la acción
+#
+# Cuenta las líneas con texto de un archivo del repositorio y devuelve el número
+# como output. El código, comentado, está en index.js.
+# Lo tienes funcionando en workflows/11_custom_actions.yaml.
+#
+# Son las más rápidas (no hay que construir ningún contenedor) y funcionan en
+# runners Linux, Windows y macOS.
+# =====================================================================
+name: "Contar líneas (JavaScript)"
+description: "Cuenta las líneas con texto de un archivo y devuelve el número"
+
+inputs:
+  archivo:
+    description: "Ruta del archivo, desde la raíz del repositorio"
+    required: true
+
+outputs:
+  lineas:
+    description: "Número de líneas con texto"
+    # En una acción JavaScript el output lo escribe el propio programa (index.js)
+
+runs:
+  using: "node24"
+  main: "index.js"

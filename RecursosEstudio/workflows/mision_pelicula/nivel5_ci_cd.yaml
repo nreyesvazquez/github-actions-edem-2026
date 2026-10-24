@@ -1,0 +1,154 @@
+# =====================================================================
+# MISSION · NIVEL 5 · PIPELINE FINAL (el ci-cd.yml de la presentación)
+# ---------------------------------------------------------------------
+#   En cada Pull Request:   Build -> Test -> Deploy Preview
+#   Al hacer merge a main:  Build -> Test -> Deploy Production
+# Si una etapa falla, el pipeline se detiene y no continúa con la siguiente.
+#
+# QUÉ CAMBIA respecto al nivel 4: escucha también push a main, y cada deploy
+# lleva un if para ejecutarse solo con su evento. Además resuelve los cuatro
+# BONUS CHALLENGES de la presentación:
+#   1. Hacer que un test falle       pon la duración de una escena a 0 en pelicula.py:
+#                                    Test sale en rojo y no se despliega nada.
+#   2. Generar un Artifact           Build sube dist/pelicula.txt y los deploy
+#                                    lo descargan: se despliega lo que se construyó.
+#   3. Utilizar un Secret            Deploy Production usa el secreto DEPLOY_TOKEN.
+#   4. Aprobación antes de Production  environment: production + «Required reviewers».
+#
+# PREPARACIÓN (opcional, para los bonus 3 y 4):
+#   - Settings > Secrets and variables > Actions > New repository secret:
+#     DEPLOY_TOKEN, con cualquier valor.
+#   - Settings > Environments > New environment: production >
+#     marca «Required reviewers» y añádete a ti. (En repositorios públicos está en
+#     todos los planes de GitHub; en privados depende del plan.)
+#
+# CÓMO PROBARLO: copia este nivel a .github/workflows/ (en lugar del anterior).
+# Abre una PR que cambie RecursosEstudio/su-pelicula/ (Build, Test, Preview) y
+# haz merge (Build, Test y, tras tu aprobación, Production).
+# =====================================================================
+name: "Mission · Nivel 5 · CI/CD Su Película"
+
+on:
+  # Cuando abrimos o actualizamos una Pull Request hacia main
+  pull_request:
+    branches: [main]
+    paths:
+      - "RecursosEstudio/su-pelicula/**"
+  # Cuando hacemos merge y el código llega a main
+  push:
+    branches: [main]
+    paths:
+      - "RecursosEstudio/su-pelicula/**"
+
+permissions:
+  contents: read
+
+jobs:
+  # =========================
+  # 1. BUILD
+  # =========================
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: RecursosEstudio/su-pelicula
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v7
+      - name: Instalar Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Build de la película
+        run: |
+          echo "Construyendo Su Película..."
+          python pelicula.py
+          echo "Build completado"
+      # BONUS 2: guardar el build para usarlo en otra etapa.
+      # La ruta de with: no usa working-directory: va desde la raíz del repositorio.
+      - name: Guardar el build como artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: su-pelicula
+          path: RecursosEstudio/su-pelicula/dist/
+          if-no-files-found: error
+
+  # =========================
+  # 2. TEST
+  # =========================
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    # No empieza hasta que Build termine correctamente
+    needs: build
+    defaults:
+      run:
+        working-directory: RecursosEstudio/su-pelicula
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v7
+      - name: Instalar Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      # BONUS 1: si un test falla, este step termina con error y el pipeline se para aquí
+      - name: Ejecutar tests
+        run: python -m unittest -v
+
+  # =========================
+  # 3. DEPLOY PREVIEW
+  # Solo Pull Requests
+  # =========================
+  deploy-preview:
+    name: Deploy Preview
+    runs-on: ubuntu-latest
+    needs: test
+    # Solo se ejecuta si estamos en una Pull Request
+    if: github.event_name == 'pull_request'
+    environment:
+      name: preview
+    steps:
+      # No hace falta checkout: lo que se despliega es el artifact del build
+      - name: Descargar el build
+        uses: actions/download-artifact@v8
+        with:
+          name: su-pelicula
+      - name: Deploy Preview
+        run: |
+          echo "Desplegando entorno Preview de la PR #${{ github.event.pull_request.number }}..."
+          cat pelicula.txt
+          echo "Preview desplegada (simulado)"
+
+  # =========================
+  # 4. DEPLOY PRODUCTION
+  # Solo cuando llegamos a main
+  # =========================
+  deploy-production:
+    name: Deploy Production
+    runs-on: ubuntu-latest
+    needs: test
+    # Solo se ejecuta en un push a main
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # BONUS 4: si production tiene «Required reviewers», el job espera aquí a que
+    # alguien pulse «Approve and deploy» en la página de la ejecución
+    environment:
+      name: production
+    steps:
+      - name: Descargar el build
+        uses: actions/download-artifact@v8
+        with:
+          name: su-pelicula
+      # BONUS 3: las credenciales de despliegue llegan como secreto, nunca en el código
+      - name: Deploy Production
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        run: |
+          if [ -z "$DEPLOY_TOKEN" ]; then
+            echo "::warning::Sin el secreto DEPLOY_TOKEN: el despliegue se simula sin credenciales"
+          else
+            echo "Autenticando con el token $DEPLOY_TOKEN"
+          fi
+          echo "Desplegando Su Película en PRODUCCIÓN..."
+          cat pelicula.txt
+          echo "Aplicación desplegada (simulado)"

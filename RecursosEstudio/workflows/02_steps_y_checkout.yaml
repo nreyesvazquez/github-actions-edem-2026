@@ -1,0 +1,62 @@
+# =====================================================================
+# 02 · STEPS Y LA ACTION CHECKOUT            (diapositivas «second.yaml»)
+# ---------------------------------------------------------------------
+# Un job es una lista de steps que se ejecutan EN ORDEN, en la misma máquina.
+# Hay dos tipos de step:
+#   run:   ejecuta comandos de terminal
+#   uses:  usa una ACTION, una tarea ya programada por otra persona
+#
+# La action más importante es actions/checkout: descarga el código del
+# repositorio en el runner. Sin ella, la máquina está vacía y no puedes leer
+# archivos, ni ejecutar tests, ni construir nada.
+#
+# CÓMO PROBARLO: cópialo a .github/workflows/, push, y Actions > Run workflow.
+# Compara el «ls -la» de antes y de después del checkout.
+# =====================================================================
+name: "02 · Steps y checkout"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  say_hello:
+    name: "Let's greet the user!"     # nombre visible del job en GitHub (el id sigue siendo say_hello)
+    runs-on: ubuntu-latest
+    steps:
+      # Un step sin name: en el log sale como «Run echo "Hello there!"»
+      - run: echo "Hello there!"
+
+      # Antes del checkout la carpeta de trabajo existe, pero está VACÍA
+      - name: Carpeta de trabajo antes del checkout
+        run: |
+          echo "Estoy en: $(pwd)"
+          ls -la
+
+      # uses: en vez de comandos, una action. @v7 es la versión que usamos.
+      # (La presentación usa @v3, que ya está obsoleta: usa siempre la actual.)
+      - name: Descargar el código del repositorio
+        uses: actions/checkout@v7
+
+      - name: Carpeta de trabajo después del checkout
+        run: ls -la
+
+      # name: le da un nombre descriptivo al step en el log
+      - name: display contents of lista_peliculas.txt
+        run: cat ./RecursosEstudio/datos/lista_peliculas.txt
+
+      # run: | permite escribir varias líneas: se ejecutan en orden, en la misma
+      # terminal, y si una falla el step se para y sale en rojo
+      - name: Varios comandos en un step
+        run: |
+          echo "Películas en la lista: $(wc -l < ./RecursosEstudio/datos/lista_peliculas.txt)"
+          echo "La primera es: $(head -n 1 ./RecursosEstudio/datos/lista_peliculas.txt)"
+
+      # working-directory: la carpeta desde la que se ejecuta el comando
+      - name: Desde otra carpeta
+        working-directory: ./RecursosEstudio/datos
+        run: ls -la
+
+      - run: echo "I am step 8!"
+
+# Los steps comparten la máquina: un archivo que crea un step lo ven los
+# siguientes steps del MISMO job. Otro job no lo verá (ejemplo 03).

@@ -1,0 +1,28 @@
+# =====================================================================
+# MISSION: AUTOMATIZAR SU PELÍCULA · NIVEL 1 · MANUAL
+# ---------------------------------------------------------------------
+# El pipeline de la Mission se construye en cinco niveles. Cada nivel es el
+# anterior con algo más (en los comentarios se marca qué cambia):
+#   1. Manual        Hola mundo: el primer workflow que se ejecuta
+#   2. Push          Build: se construye la aplicación
+#   3. Push          Build -> Test
+#   4. Pull Request  Build -> Test -> Preview
+#   5. Merge a main  Build -> Test -> Production  (+ los bonus challenges)
+#
+# La «película» es la app de RecursosEstudio/su-pelicula/ (pelicula.py y sus tests).
+#
+# CÓMO PROBARLO: copia UN nivel cada vez a .github/workflows/ (si copias varios,
+# los que escuchan el mismo evento se ejecutarán todos a la vez). El archivo
+# objetivo de la presentación se llama ci-cd.yml: puedes guardarlo con ese nombre.
+# Este nivel: push, y Actions > Run workflow.
+# =====================================================================
+name: "Mission · Nivel 1 · Manual"
+
+on:
+  workflow_dispatch:          # se lanza a mano
+
+jobs:
+  hola:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Hola mundo. Empieza el rodaje de Su Película"

@@ -1,0 +1,66 @@
+# =====================================================================
+# 10 · ARTIFACTS                                          (diapositiva «Artifacts»)
+# ---------------------------------------------------------------------
+# Un artifact es un ARCHIVO (o una carpeta) que un job sube al almacenamiento
+# de GitHub para que:
+#   - lo use otro job (que lo descarga), o
+#   - lo descargue una persona desde la página de la ejecución.
+# Para datos pequeños (un número, un texto) basta con outputs (ejemplo 09);
+# para archivos completos (informes, binarios, logs), artifacts.
+#
+#   Subir:     actions/upload-artifact@v7
+#   Descargar: actions/download-artifact@v8
+# (Las versiones v3 de estas dos actions ya no funcionan: GitHub las retiró.)
+#
+# CÓMO PROBARLO: cópialo a .github/workflows/, push, Actions > Run workflow.
+# Al terminar, en la página de la ejecución (Summary), abajo, sección Artifacts,
+# aparece «demo-informe» para descargarlo como .zip.
+# =====================================================================
+name: "10 · Artifacts"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generar un informe y un «binario»
+        run: |
+          mkdir -p salida
+          {
+            echo "Informe de build"
+            echo "Fecha: $(date)"
+            echo "Commit: $GITHUB_SHA"
+            echo "Ejecución número: $GITHUB_RUN_NUMBER"
+          } > salida/informe.txt
+          echo "esto simula un ejecutable" > salida/app.bin
+          ls -la salida
+
+      - name: Subir el artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: demo-informe          # nombre del artifact (con él se descarga)
+          path: salida/               # archivo, carpeta o patrón (por ejemplo salida/*.txt)
+          retention-days: 5           # días que se guarda (de 1 a 90; por defecto, 90)
+          if-no-files-found: error    # si no encuentra archivos, falla (por defecto solo avisa)
+
+  leer:
+    needs: build                      # tiene que esperar a que el artifact exista
+    runs-on: ubuntu-latest
+    steps:
+      # Máquina nueva: el informe no está hasta que se descarga
+      - name: Antes de descargar
+        run: ls -la
+
+      - name: Descargar el artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: demo-informe
+          path: descargado/           # carpeta donde dejarlo (por defecto, la de trabajo)
+
+      # Se descarga el CONTENIDO de salida/: descargado/informe.txt y descargado/app.bin
+      - name: Leer el informe
+        run: |
+          ls -la descargado
+          cat descargado/informe.txt

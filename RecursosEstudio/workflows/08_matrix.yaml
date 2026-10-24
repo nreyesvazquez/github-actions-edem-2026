@@ -1,0 +1,67 @@
+# =====================================================================
+# 08 · MATRIX STRATEGY                       (diapositiva «Gestión: Matrix Strategy»)
+# ---------------------------------------------------------------------
+# Con strategy.matrix, GitHub crea UN JOB POR CADA COMBINACIÓN de valores y los
+# ejecuta a la vez. Aquí: 3 sistemas operativos x 2 versiones de Python = 6
+# combinaciones; exclude quita 1 e include añade 1, así que salen 6 jobs.
+# Cada job lee su combinación con ${{ matrix.os }} y ${{ matrix.python-version }}.
+#
+# Se ejecutan los tests REALES de la calculadora del repositorio (code/python),
+# para comprobar que funciona en todos esos sistemas y versiones.
+#
+# CÓMO PROBARLO: cópialo a .github/workflows/, push, Actions > Run workflow.
+# Verás los 6 jobs con nombres como «test (ubuntu-latest, 3.14)».
+#
+# OJO: en repositorios privados, los minutos de Windows y sobre todo de macOS
+# cuentan mucho más que los de Linux. En repositorios públicos son gratis.
+# =====================================================================
+name: "08 · Matrix"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      # fail-fast: true (por defecto) cancela el resto de jobs en cuanto uno falla.
+      # Con false terminan todos, y ves en qué combinaciones falla y en cuáles no.
+      fail-fast: false
+      # max-parallel: cuántos jobs de la matrix a la vez como máximo (opcional)
+      max-parallel: 4
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        # Las versiones van ENTRE COMILLAS: sin ellas, YAML lee 3.10 como el número 3.1
+        python-version: ["3.12", "3.14"]
+        # exclude: quita combinaciones
+        exclude:
+          - os: macos-latest
+            python-version: "3.12"
+        # include: añade combinaciones (o variables extra a las que ya hay)
+        include:
+          - os: ubuntu-latest
+            python-version: "3.13"
+            nota: "combinación añadida con include"
+
+    # La matrix decide en qué runner se ejecuta cada job
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # setup-python instala la versión de Python que toque en este job
+      - name: Instalar Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Versión instalada
+        run: python --version
+
+      # Este comando funciona igual en la terminal de Linux, macOS y Windows
+      - name: Tests de la calculadora
+        run: python -m unittest discover -s code/python -p "test_*.py" -v
+
+      # matrix.nota solo existe en la combinación del include: en las demás vale ''
+      - name: Solo en la combinación añadida
+        if: matrix.nota != ''
+        run: echo "${{ matrix.nota }}"

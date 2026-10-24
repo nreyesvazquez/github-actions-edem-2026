@@ -1,0 +1,35 @@
+# =====================================================================
+# 01 · PRIMER WORKFLOW                       (diapositivas «Primer Workflow»)
+# ---------------------------------------------------------------------
+# Lo mínimo que necesita un workflow para funcionar son cuatro piezas:
+#   Event    on:               cuándo se ejecuta
+#   Job      jobs: say_hello:  qué trabajo hace
+#   Runner   runs-on:          en qué máquina
+#   Step     steps:            los pasos de ese trabajo
+#
+# CÓMO PROBARLO
+#   1. Copia este archivo a .github/workflows/ (en la raíz del repositorio).
+#   2. Haz commit y push a main.
+#   3. En GitHub: pestaña Actions > «01 · Primer workflow» > Run workflow.
+# Al abrir la ejecución y el job say_hello, en el log del step verás: Hello there!
+# =====================================================================
+
+# Nombre que aparece en la pestaña Actions. Es opcional: sin él, GitHub
+# enseña la ruta del archivo (.github/workflows/01_primer_workflow.yaml).
+name: "01 · Primer workflow"
+
+# EVENT: workflow_dispatch = se lanza a mano, con el botón «Run workflow».
+# Los dos puntos sin nada detrás son correctos: el evento no lleva opciones.
+on:
+  workflow_dispatch:
+
+# JOBS: los trabajos del workflow. Aquí solo hay uno.
+jobs:
+  say_hello:                     # id del job: lo eliges tú (letras, números, - y _)
+    runs-on: ubuntu-latest       # RUNNER: máquina virtual de GitHub con Ubuntu
+    steps:                       # STEPS: lista de pasos; cada uno empieza por -
+      - run: echo "Hello there!" # run: ejecuta un comando en la terminal del runner
+
+# OJO con la indentación: YAML usa espacios (nunca tabuladores) y la posición de
+# cada línea dice dentro de qué está. steps va dentro de say_hello, y say_hello
+# dentro de jobs.

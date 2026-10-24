@@ -1,0 +1,58 @@
+# =====================================================================
+# MISSION · NIVEL 3 · PUSH -> BUILD -> TEST
+# ---------------------------------------------------------------------
+# QUÉ CAMBIA: un segundo job, test, que ejecuta los tests de la película.
+#   - needs: build -> test no empieza hasta que build termina BIEN.
+#     Si build falla, test ni se ejecuta.
+#   - test hace su propio checkout y setup-python: es otra máquina.
+#
+# CÓMO PROBARLO: copia este nivel a .github/workflows/ (en lugar del anterior) y
+# sube un cambio en RecursosEstudio/su-pelicula/.
+# Para ver el pipeline en rojo: pon la duración de una escena a 0 en pelicula.py.
+# =====================================================================
+name: "Mission · Nivel 3 · Build y Test"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "RecursosEstudio/su-pelicula/**"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: RecursosEstudio/su-pelicula
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v7
+      - name: Instalar Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Build de la película
+        run: |
+          python pelicula.py
+          echo "Build completado"
+
+  # NUEVO EN ESTE NIVEL
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: build                       # no empieza hasta que Build termine correctamente
+    defaults:
+      run:
+        working-directory: RecursosEstudio/su-pelicula
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v7
+      - name: Instalar Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      # Si un test falla, unittest termina con error y el job sale en rojo
+      - name: Ejecutar tests
+        run: python -m unittest -v

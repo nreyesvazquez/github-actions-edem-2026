@@ -1,0 +1,181 @@
+# =====================================================================
+# 13 · PIPELINE CI/CD COMPLETO PARA LA CALCULADORA DE code/python
+#                       (objetivo 05: «Diseñar e implementar un pipeline de CI/CD»)
+# ---------------------------------------------------------------------
+# Junta todo lo de la sesión sobre la app real del repositorio:
+#
+#   calidad ──> tests (matrix: 3 versiones de Python) ──> docker ──┬─> deploy-preview     (solo en PR)
+#                                                                  └─> deploy-production  (solo en push a main)
+#
+#   calidad            flake8 (errores y estilo), black (formato) y bandit (seguridad)
+#   tests              unittest con cobertura; sube el informe de cobertura como artifact
+#   docker             revisa el Dockerfile con hadolint y construye la imagen (sin publicarla)
+#   deploy-preview     despliegue simulado de una versión de prueba
+#   deploy-production  despliegue simulado a producción, con environment (aprobación opcional)
+#
+# Es la versión comentada y corregida de 8.python_pr.yaml (ver las notas del README).
+#
+# CÓMO PROBARLO: cópialo a .github/workflows/ y:
+#   - Actions > Run workflow (ejecuta calidad, tests y docker), o
+#   - abre una PR hacia main que cambie algo de code/python (añade deploy-preview), o
+#   - haz merge de esa PR (push a main: añade deploy-production).
+# =====================================================================
+name: "13 · CI/CD de la calculadora"
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "code/python/**"
+      - ".github/workflows/13_ci_cd_calculadora.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "code/python/**"
+      - ".github/workflows/13_ci_cd_calculadora.yaml"
+  workflow_dispatch:
+
+# Permisos del token automático (GITHUB_TOKEN): solo leer el código.
+# Dar solo los permisos necesarios es una buena práctica de seguridad.
+permissions:
+  contents: read
+
+# Si subes otro commit a la misma rama mientras se ejecuta, cancela la ejecución
+# anterior y se queda con la nueva (ahorra minutos)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ===================================================================
+  # 1. CALIDAD DEL CÓDIGO
+  # ===================================================================
+  calidad:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          # Guarda en caché lo que instala pip: las siguientes ejecuciones van más rápido
+          cache: pip
+          cache-dependency-path: code/python/requirements.txt
+
+      - name: Instalar herramientas
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r code/python/requirements.txt
+
+      - name: flake8 (errores y estilo)
+        run: flake8 code/python
+
+      # black --check no cambia nada: dice si algún archivo no tiene el formato de black.
+      # Hoy test_main.py no lo tiene, así que este step falla. continue-on-error: true
+      # hace que salga como aviso y el job siga. Arréglalo con: black code/python
+      # y después quita el continue-on-error para que el formato sea obligatorio.
+      - name: black (formato)
+        run: black --check --diff code/python
+        continue-on-error: true
+
+      - name: bandit (seguridad)
+        run: bandit -r code/python
+
+  # ===================================================================
+  # 2. TESTS, EN VARIAS VERSIONES DE PYTHON
+  # ===================================================================
+  tests:
+    needs: calidad
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Instalar coverage
+        run: pip install coverage
+
+      # coverage ejecuta los tests y anota qué líneas de main.py se han usado
+      - name: Tests con cobertura
+        run: |
+          coverage run --source=code/python --omit="*test_*" -m unittest discover -s code/python -p "test_*.py" -v
+          coverage report -m
+          coverage html -d informe-cobertura
+
+      # Un artifact por versión: el nombre tiene que ser distinto en cada job de la matrix
+      - name: Subir el informe de cobertura
+        uses: actions/upload-artifact@v7
+        with:
+          name: cobertura-python-${{ matrix.python-version }}
+          path: informe-cobertura/
+          retention-days: 7
+
+  # ===================================================================
+  # 3. DOCKER: REVISAR Y CONSTRUIR LA IMAGEN
+  # ===================================================================
+  docker:
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      # hadolint revisa el Dockerfile y avisa de malas prácticas
+      - name: Revisar el Dockerfile
+        uses: hadolint/hadolint-action@v3.5.0
+        with:
+          dockerfile: code/python/DockerFile
+
+      - name: Preparar Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # context: code/python -> el COPY . /app del Dockerfile copia esa carpeta,
+      # así main.py queda en /app/main.py, que es lo que ejecuta su CMD.
+      # (8.python_pr.yaml usa context: . y entonces main.py acabaría en /app/code/python/)
+      - name: Construir la imagen
+        uses: docker/build-push-action@v7
+        with:
+          context: code/python
+          file: code/python/DockerFile
+          push: false                  # solo construir; para publicarla haría falta login y push: true
+          tags: calculadora:${{ github.sha }}
+
+  # ===================================================================
+  # 4. DESPLIEGUE DE PRUEBA (solo en Pull Requests)
+  # ===================================================================
+  deploy-preview:
+    needs: docker
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    # environment: GitHub registra el despliegue y lo enseña en la PR y en
+    # la página principal del repositorio (Deployments)
+    environment:
+      name: preview
+    steps:
+      - run: |
+          echo "Desplegando la PR #${{ github.event.pull_request.number }} en el entorno de pruebas..."
+          echo "Preview desplegada (simulado)"
+
+  # ===================================================================
+  # 5. DESPLIEGUE A PRODUCCIÓN (solo cuando el código llega a main)
+  # ===================================================================
+  deploy-production:
+    needs: docker
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # Si en Settings > Environments > production activas «Required reviewers»,
+    # este job se queda esperando hasta que alguien lo apruebe
+    environment:
+      name: production
+    steps:
+      - run: |
+          echo "Desplegando el commit ${{ github.sha }} en producción..."
+          echo "Calculadora desplegada (simulado)"

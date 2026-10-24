@@ -1,0 +1,49 @@
+# =====================================================================
+# 12 · WORKFLOW REUTILIZABLE (on: workflow_call)                 (extra)
+# ---------------------------------------------------------------------
+# La presentación menciona workflow_call al hablar de inputs: es el evento de un
+# workflow que OTRO workflow llama, como si fuera una función.
+#   - Recibe inputs (y secretos) del workflow que lo llama.
+#   - Puede devolver outputs.
+#   - No se lanza solo: lo lanza 12_llamar_reutilizable.yaml.
+#
+# A diferencia de una custom action (que es un step), un workflow reutilizable
+# trae jobs enteros, con su propio runs-on.
+#
+# CÓMO PROBARLO: copia este archivo Y 12_llamar_reutilizable.yaml a
+# .github/workflows/, sin cambiarles el nombre. Lanza «12 · Llamar a un workflow
+# reutilizable» desde Actions > Run workflow.
+# =====================================================================
+name: "12 · Workflow reutilizable (tests de Python)"
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: "Versión de Python para los tests"
+        required: false
+        type: string            # en workflow_call, type es obligatorio
+        default: "3.13"
+    outputs:
+      resultado:
+        description: "Resumen de los tests"
+        # El output del workflow sale del output de uno de sus jobs
+        value: ${{ jobs.tests.outputs.resultado }}
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    outputs:
+      resultado: ${{ steps.resumen.outputs.resultado }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Tests de la calculadora
+        run: python -m unittest discover -s code/python -p "test_*.py" -v
+
+      - id: resumen
+        run: echo "resultado=Tests OK con Python ${{ inputs.python-version }}" >> "$GITHUB_OUTPUT"

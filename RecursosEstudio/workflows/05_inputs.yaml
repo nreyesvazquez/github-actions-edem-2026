@@ -1,0 +1,91 @@
+# =====================================================================
+# 05 · INPUTS                                  (diapositivas «Inputs» y «third.yaml»)
+# ---------------------------------------------------------------------
+# Los inputs son los datos que pide el workflow al lanzarlo. Solo existen con
+# workflow_dispatch (formulario de Run workflow), con workflow_call (los pasa
+# el workflow que llama, ejemplo 12) y en las actions (ejemplo 11).
+#
+# Propiedades de cada input:
+#   description   lo que ve el usuario en el formulario
+#   required      si es obligatorio (opcional; por defecto false)
+#   default       valor por defecto (opcional)
+#   type          string, boolean, choice, number o environment (opcional; por defecto string)
+#   options       solo para type: choice, la lista de opciones
+# Se leen con ${{ inputs.<id> }}.
+#
+# CÓMO PROBARLO: cópialo a .github/workflows/, push, Actions > Run workflow.
+# Al pulsar Run workflow se abre un formulario con los cuatro inputs.
+# =====================================================================
+name: "05 · Inputs"
+
+on:
+  workflow_dispatch:
+    inputs:
+      thename:                          # id del input: único; letras, números, - y _
+        description: "What is your name?"
+        required: true                  # el formulario no deja lanzarlo vacío
+        type: string
+      idioma:
+        description: "Idioma del saludo"
+        required: false
+        type: choice                    # desplegable
+        options:
+          - es
+          - en
+          - va
+        default: es
+      repeticiones:
+        description: "Cuántas veces saludar"
+        type: number
+        default: 1
+      gritar:
+        description: "¿Saludar en mayúsculas?"
+        type: boolean                   # casilla de verificación
+        default: false
+      # type: environment muestra un desplegable con los environments del repositorio
+      # (Settings > Environments). No se usa aquí para que funcione sin crear ninguno.
+
+jobs:
+  say_hello:
+    name: "Let's greet the user!"
+    runs-on: ubuntu-latest
+    steps:
+      # Así lo hace la presentación (third.yaml): el input dentro del comando
+      - run: echo "Hello there, ${{ inputs.thename }}!"
+
+      # Forma RECOMENDADA: los inputs entran por env y el script usa variables
+      # normales. Así, si alguien escribe comillas o comandos en el formulario,
+      # no se ejecutan (ver «Advertencias» en el README).
+      - name: Saludo personalizado
+        env:
+          NOMBRE: ${{ inputs.thename }}
+          IDIOMA: ${{ inputs.idioma }}
+          REPETICIONES: ${{ inputs.repeticiones }}
+          GRITAR: ${{ inputs.gritar }}
+        run: |
+          case "$IDIOMA" in
+            en) saludo="Hello, $NOMBRE!" ;;
+            va) saludo="Bon dia, $NOMBRE!" ;;
+            *)  saludo="¡Hola, $NOMBRE!" ;;
+          esac
+          # Mayúsculas con Python (ya instalado en ubuntu-latest). Con bash,
+          # ${saludo^^}, las letras con tilde se quedarían en minúscula: «LUCíA»
+          if [ "$GRITAR" = "true" ]; then
+            saludo=$(python3 -c 'import sys; print(sys.argv[1].upper())' "$saludo")
+          fi
+          for i in $(seq 1 "$REPETICIONES"); do
+            echo "$i. $saludo"
+          done
+
+      # Un input boolean se puede usar directamente en un if
+      - name: Solo si has marcado gritar
+        if: inputs.gritar
+        run: echo "Has marcado la casilla gritar"
+
+      # inputs.<id> respeta el tipo; github.event.inputs.<id> (forma antigua,
+      # la que usa 7.multiple_job_argument.yaml) lo convierte todo a texto.
+      # Por eso allí hay que comparar con == 'true', entre comillas.
+      - name: inputs frente a github.event.inputs
+        run: |
+          echo "inputs.gritar              = ${{ inputs.gritar }}  (boolean)"
+          echo "github.event.inputs.gritar = ${{ github.event.inputs.gritar }}  (texto)"

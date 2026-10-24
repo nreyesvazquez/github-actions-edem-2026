@@ -1,0 +1,76 @@
+# =====================================================================
+# 11 · CUSTOM ACTIONS                                  (diapositiva «Custom Actions»)
+# ---------------------------------------------------------------------
+# Usa las tres acciones propias de RecursosEstudio/acciones/, una de cada tipo:
+#   saludo-composite   Composite:  varios steps juntos en una acción
+#   contar-lineas-js   JavaScript: un programa de Node.js
+#   cartel-docker      Docker:     un script que corre dentro de un contenedor
+# Cada carpeta tiene su action.yml comentado.
+#
+# Cómo se referencia una acción en uses:
+#   ./ruta/a/la/carpeta            una acción de ESTE repositorio (necesita checkout antes)
+#   usuario/repositorio@v1         una acción publicada en otro repositorio
+#   usuario/repositorio/ruta@v1    una acción que está en una subcarpeta de otro repositorio
+#
+# CÓMO PROBARLO: cópialo a .github/workflows/ (la carpeta RecursosEstudio/acciones
+# tiene que estar también en el repositorio), push, Actions > Run workflow.
+# =====================================================================
+name: "11 · Custom actions"
+
+on:
+  workflow_dispatch:
+    inputs:
+      nombre:
+        description: "A quién saluda la acción composite"
+        type: string
+        default: "EDEM"
+      titulo:
+        description: "Película para el cartel"
+        type: string
+        default: "Interstellar"
+
+jobs:
+  probar_acciones:
+    # ubuntu-latest: la acción Docker SOLO funciona en runners Linux
+    runs-on: ubuntu-latest
+    steps:
+      # Sin checkout, el runner no tiene las carpetas de las acciones y falla con
+      # «Can't find 'action.yml', 'action.yaml' or 'Dockerfile' under ...»
+      - uses: actions/checkout@v7
+
+      # 1. COMPOSITE. with: le pasa los inputs
+      - name: Acción composite
+        id: saludo
+        uses: ./RecursosEstudio/acciones/saludo-composite
+        with:
+          nombre: ${{ inputs.nombre }}
+          idioma: es
+
+      # El output de una acción se lee como el de cualquier step: steps.<id>.outputs
+      - name: Output de la composite
+        env:
+          MENSAJE: ${{ steps.saludo.outputs.mensaje }}
+        run: |
+          echo "La acción composite ha devuelto: $MENSAJE"
+
+      # 2. JAVASCRIPT
+      - name: Acción JavaScript
+        id: contar
+        uses: ./RecursosEstudio/acciones/contar-lineas-js
+        with:
+          archivo: RecursosEstudio/datos/lista_peliculas.txt
+
+      - name: Output de la acción JavaScript
+        run: echo "La lista tiene ${{ steps.contar.outputs.lineas }} películas"
+
+      # 3. DOCKER. La primera vez tarda un poco más: GitHub construye la imagen
+      - name: Acción Docker
+        id: cartel
+        uses: ./RecursosEstudio/acciones/cartel-docker
+        with:
+          titulo: ${{ inputs.titulo }}
+
+      - name: Output de la acción Docker
+        env:
+          CARTEL: ${{ steps.cartel.outputs.cartel }}
+        run: echo "$CARTEL"

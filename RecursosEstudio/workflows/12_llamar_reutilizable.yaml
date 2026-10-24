@@ -1,0 +1,39 @@
+# =====================================================================
+# 12 · LLAMAR A UN WORKFLOW REUTILIZABLE                         (extra)
+# ---------------------------------------------------------------------
+# Un job que llama a un workflow reutilizable no tiene runs-on ni steps:
+# solo uses: (qué workflow) y with: (sus inputs).
+#
+#   ./.github/workflows/<archivo>                      un workflow de ESTE repositorio
+#   usuario/repo/.github/workflows/<archivo>@main      uno de otro repositorio
+# Los workflows reutilizables tienen que estar en .github/workflows/: por eso
+# la ruta es esa y no RecursosEstudio/workflows/.
+#
+# CÓMO PROBARLO: copia este archivo y 12_workflow_reutilizable.yaml a
+# .github/workflows/, push, y Actions > «12 · Llamar a un workflow reutilizable» > Run workflow.
+# =====================================================================
+name: "12 · Llamar a un workflow reutilizable"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # Dos llamadas al mismo workflow con distinto input: se ejecutan en paralelo
+  tests_313:
+    uses: ./.github/workflows/12_workflow_reutilizable.yaml
+    with:
+      python-version: "3.13"
+
+  tests_314:
+    uses: ./.github/workflows/12_workflow_reutilizable.yaml
+    with:
+      python-version: "3.14"
+
+  # Lee los outputs que devolvió cada llamada
+  resumen:
+    needs: [tests_313, tests_314]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "${{ needs.tests_313.outputs.resultado }}"
+          echo "${{ needs.tests_314.outputs.resultado }}"

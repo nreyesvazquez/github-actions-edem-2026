@@ -1,0 +1,60 @@
+# =====================================================================
+# CUSTOM ACTION · COMPOSITE: combina varios steps en una sola acción
+# ---------------------------------------------------------------------
+# Una acción vive en su propia carpeta y se describe en un archivo action.yml
+# (o action.yaml). Este archivo tiene siempre las mismas partes:
+#   name, description   cómo se llama y qué hace
+#   inputs              lo que recibe (se leen con ${{ inputs.<nombre> }})
+#   outputs             lo que devuelve
+#   runs                cómo se ejecuta: aquí, using: composite + una lista de steps
+#
+# Se usa desde un workflow así (después de actions/checkout, porque está en el repo):
+#   - id: saludo
+#     uses: ./RecursosEstudio/acciones/saludo-composite
+#     with:
+#       nombre: Oscar
+#   - run: echo "${{ steps.saludo.outputs.mensaje }}"
+# Lo tienes funcionando en workflows/11_custom_actions.yaml.
+#
+# Para qué sirve: para no copiar y pegar los mismos steps en muchos workflows.
+# =====================================================================
+name: "Saludo (composite)"
+description: "Saluda a una persona en español o en inglés y devuelve el saludo como output"
+
+inputs:
+  nombre:
+    description: "A quién saludar"
+    required: true
+  idioma:
+    description: "es o en"
+    required: false
+    default: "es"
+
+outputs:
+  mensaje:
+    description: "El saludo completo"
+    # En una composite, el output se saca del output de uno de sus steps
+    value: ${{ steps.saludar.outputs.mensaje }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: saludar
+      # En una composite cada step con run: tiene que decir qué shell usa
+      shell: bash
+      # Los inputs se pasan por env para no meter texto del usuario dentro del script
+      env:
+        NOMBRE: ${{ inputs.nombre }}
+        IDIOMA: ${{ inputs.idioma }}
+      run: |
+        if [ "$IDIOMA" = "en" ]; then
+          mensaje="Hello, $NOMBRE!"
+        else
+          mensaje="¡Hola, $NOMBRE!"
+        fi
+        echo "$mensaje"
+        echo "mensaje=$mensaje" >> "$GITHUB_OUTPUT"
+
+    # github.action_path: la carpeta donde está esta acción dentro del runner
+    - shell: bash
+      run: echo "Esta acción está en ${{ github.action_path }}"

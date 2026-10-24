@@ -1,0 +1,79 @@
+# =====================================================================
+# 09 · OUTPUTS                         (diapositivas «Outputs» y «outputs.yaml»)
+# ---------------------------------------------------------------------
+# Un output es un dato que deja un step (o un job) para que lo usen los
+# siguientes. Siempre son TEXTO.
+#
+#   Crear, dentro de un step con id:   echo "<nombre>=<valor>" >> "$GITHUB_OUTPUT"
+#   Leer en otro step del mismo job:   ${{ steps.<id-del-step>.outputs.<nombre> }}
+#   Sacarlo del job (outputs: del job) y leerlo en otro job con needs:
+#                                      ${{ needs.<id-del-job>.outputs.<nombre> }}
+#
+# (La forma antigua, echo "::set-output name=x::valor", está obsoleta: no la uses.)
+#
+# CÓMO PROBARLO: cópialo a .github/workflows/, push, Actions > Run workflow.
+# =====================================================================
+name: "09 · Outputs"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  say_hello:
+    name: "Let's greet the user!"
+    runs-on: ubuntu-latest
+
+    # Outputs del JOB: qué outputs de sus steps quiere compartir con otros jobs
+    outputs:
+      hora: ${{ steps.get-time.outputs.currenttime }}
+      numero: ${{ steps.sorteo.outputs.numero }}
+
+    steps:
+      # El ejemplo de la presentación (outputs.yaml)
+      - id: get-time                       # sin id no se puede leer su output
+        name: Grab the current time
+        run: |
+          curTime=$(date)                                   # guarda la fecha y hora en curTime
+          echo "currenttime=${curTime}" >> "$GITHUB_OUTPUT" # y la exporta como currenttime
+
+      # contexto steps -> step get-time -> sus outputs -> el output currenttime
+      - run: echo "The time from the early step is ${{ steps.get-time.outputs.currenttime }}"
+
+      - id: sorteo
+        name: Un número aleatorio del 1 al 100
+        run: echo "numero=$(( RANDOM % 100 + 1 ))" >> "$GITHUB_OUTPUT"
+
+      # Un step puede dejar varios outputs. Uno de varias líneas se escribe con
+      # un delimitador: nombre<<FIN, las líneas, y FIN.
+      # { ... } >> "$GITHUB_OUTPUT" manda todas las líneas de golpe al archivo.
+      - id: pelicula
+        name: Varios outputs, uno de varias líneas
+        run: |
+          {
+            echo "titulo=Interstellar"
+            echo "anio=2014"
+            echo "reparto<<FIN"
+            echo "Matthew McConaughey"
+            echo "Anne Hathaway"
+            echo "Jessica Chastain"
+            echo "FIN"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Leer los outputs del step pelicula
+        env:
+          REPARTO: ${{ steps.pelicula.outputs.reparto }}
+        run: |
+          echo "${{ steps.pelicula.outputs.titulo }} (${{ steps.pelicula.outputs.anio }})"
+          echo "Reparto:"
+          echo "$REPARTO"
+
+  # Otro job, en otra máquina: solo le llega lo que say_hello declaró en outputs:
+  otro_job:
+    needs: say_hello
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "Hora calculada en say_hello: ${{ needs.say_hello.outputs.hora }}"
+          echo "Número del sorteo: ${{ needs.say_hello.outputs.numero }}"
+      # Los outputs del step pelicula no están en outputs: del job, así que aquí
+      # no llegan: needs.say_hello.outputs.titulo no existe.

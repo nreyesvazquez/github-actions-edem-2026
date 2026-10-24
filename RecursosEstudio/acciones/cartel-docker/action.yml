@@ -1,0 +1,35 @@
+# =====================================================================
+# CUSTOM ACTION · DOCKER: ejecuta el código dentro de un contenedor
+# ---------------------------------------------------------------------
+# runs.using: docker
+# runs.image: Dockerfile   GitHub construye la imagen con el Dockerfile de esta
+#                          carpeta cada vez que se usa la acción (también podría
+#                          ser una imagen ya publicada: docker://alpine:3.22)
+# runs.args:               los argumentos que recibe el ENTRYPOINT del contenedor
+#
+# Dibuja el cartel de una película y devuelve una frase como output. El script
+# que se ejecuta dentro del contenedor está en entrypoint.sh.
+# Lo tienes funcionando en workflows/11_custom_actions.yaml.
+#
+# Ventaja: el entorno es siempre el mismo (el de la imagen), con las herramientas
+# que quieras instalar. Inconvenientes: tarda más (hay que construir la imagen) y
+# SOLO funciona en runners Linux (ubuntu-latest).
+# =====================================================================
+name: "Cartel de película (Docker)"
+description: "Dibuja el cartel de una película dentro de un contenedor"
+
+inputs:
+  titulo:
+    description: "Título de la película"
+    required: true
+
+outputs:
+  cartel:
+    description: "Frase con la película en cartelera"
+    # La escribe entrypoint.sh en $GITHUB_OUTPUT, igual que un step con run
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  args:
+    - ${{ inputs.titulo }}

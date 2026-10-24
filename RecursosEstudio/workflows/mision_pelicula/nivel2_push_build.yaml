@@ -1,0 +1,43 @@
+# =====================================================================
+# MISSION · NIVEL 2 · PUSH -> BUILD
+# ---------------------------------------------------------------------
+# QUÉ CAMBIA: el workflow se lanza solo al hacer push, y construye la película.
+#   - on: push, filtrado para que solo salte si cambia algo de su-pelicula/
+#   - checkout (sin el código no hay nada que construir)
+#   - setup-python y python pelicula.py, que genera dist/pelicula.txt
+#
+# CÓMO PROBARLO: copia este nivel a .github/workflows/ (en lugar del anterior)
+# y sube un cambio en RecursosEstudio/su-pelicula/ (por ejemplo, cambia el TITULO).
+# =====================================================================
+name: "Mission · Nivel 2 · Build"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "RecursosEstudio/su-pelicula/**"
+  workflow_dispatch:             # para poder lanzarlo también a mano
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    # defaults.run.working-directory: todos los run de este job se ejecutan en esa carpeta
+    defaults:
+      run:
+        working-directory: RecursosEstudio/su-pelicula
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v7
+
+      - name: Instalar Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Build de la película
+        run: |
+          echo "Construyendo Su Película..."
+          python pelicula.py
+          cat dist/pelicula.txt
+          echo "Build completado"

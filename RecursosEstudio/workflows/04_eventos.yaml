@@ -1,0 +1,76 @@
+# =====================================================================
+# 04 · EVENTOS: CUÁNDO SE EJECUTA UN WORKFLOW (diapositiva «Componentes: Event»)
+# ---------------------------------------------------------------------
+# Un evento (o trigger) es algo que ocurre en el repositorio. Un workflow puede
+# escuchar varios a la vez. Los más usados:
+#   workflow_dispatch  a mano, con el botón Run workflow
+#   push               al subir commits (se puede filtrar por rama y por carpeta)
+#   pull_request       al abrir o actualizar una Pull Request
+#   schedule           a una hora fija, con una expresión cron
+#   workflow_call      cuando otro workflow lo llama (ejemplo 12)
+# La lista completa: https://docs.github.com/actions/reference/events-that-trigger-workflows
+#
+# CÓMO PROBARLO: cópialo a .github/workflows/ y haz push.
+#   - A mano: Actions > Run workflow.
+#   - push: cambia cualquier archivo dentro de RecursosEstudio/ y súbelo a main o a develop.
+#   - pull_request: abre una PR hacia main.
+#   - schedule: se lanzará solo cada lunes. Si no lo quieres, borra ese bloque.
+# =====================================================================
+name: "04 · Eventos"
+
+on:
+  # A mano
+  workflow_dispatch:
+
+  # Al hacer push, pero solo en estas ramas Y solo si cambia algo de RecursosEstudio/
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "RecursosEstudio/**"           # ** = cualquier archivo, en cualquier subcarpeta
+    # También existen branches-ignore, paths-ignore y tags (p. ej. tags: ["v*"])
+
+  # Al abrir una PR hacia main, al subir commits nuevos a ella o al reabrirla
+  pull_request:
+    branches: [main]                   # rama DESTINO de la PR
+    types: [opened, synchronize, reopened]   # estos tres son los de por defecto
+
+  # Cada lunes a las 7:00 UTC (las 9:00 en España en horario de verano, las 8:00 en invierno).
+  # cron: minuto hora día-del-mes mes día-de-la-semana   (1 = lunes)
+  schedule:
+    - cron: "0 7 * * 1"
+
+jobs:
+  que_ha_pasado:
+    runs-on: ubuntu-latest
+    steps:
+      # github.event_name: el nombre del evento que ha lanzado esta ejecución
+      - run: echo "Me ha lanzado el evento ${{ github.event_name }}"
+
+      # if: el step solo se ejecuta si se cumple la condición
+      - name: Solo si ha sido un push
+        if: github.event_name == 'push'
+        run: echo "Push a la rama ${{ github.ref_name }}, commit ${{ github.sha }}"
+
+      # El título de una PR lo escribe una persona: se pasa por env, nunca
+      # directamente dentro del script (ver «Advertencias» en el README)
+      - name: Solo si ha sido una Pull Request
+        if: github.event_name == 'pull_request'
+        env:
+          TITULO_PR: ${{ github.event.pull_request.title }}
+          NUMERO_PR: ${{ github.event.pull_request.number }}
+          RAMA_ORIGEN: ${{ github.head_ref }}
+        # En bloque (run: |): en una sola línea, YAML tomaría « #» como el
+        # comienzo de un comentario y cortaría el comando ahí
+        run: |
+          echo "PR #$NUMERO_PR «$TITULO_PR», desde la rama $RAMA_ORIGEN"
+
+      - name: Solo si ha sido la ejecución programada
+        if: github.event_name == 'schedule'
+        run: |
+          echo "Buenos días: es lunes y toca el informe semanal"
+
+      - name: Solo si lo has lanzado tú
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "Lanzado a mano por ${{ github.actor }}"
