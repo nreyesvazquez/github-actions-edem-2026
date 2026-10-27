@@ -1,0 +1,9 @@
+on:
+  workflow_dispatch:
+  #como quiero que se ejecute el pipeline
+jobs:
+  say_hello:
+  #nombre del job
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Hello there!"

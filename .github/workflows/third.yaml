@@ -1,0 +1,13 @@
+name: Hola Caracola
+on:
+  workflow_dispatch:
+    inputs:
+      thename:
+        description: "¿Cuál es tu nombre?"
+        required: true
+jobs:
+  say_hello:
+    name: "Bienvenidos"
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "¡Hola caracola, ${{ inputs.thename }}!"

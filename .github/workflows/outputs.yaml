@@ -1,0 +1,13 @@
+on:
+  workflow_dispatch:
+jobs:
+  say_hello:
+    name: "Let's greet the user!"
+    runs-on: ubuntu-latest
+    steps:
+      - id: get-time
+        name: Grab the current time
+        run: 
+          curTime=$(date)
+          echo "currenttime=${curTime}" >> $GITHUB_OUTPUT
+      - run: echo "The time from the early step is ${{ steps.get-time.outputs.currenttime }}"
